@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -51,8 +52,8 @@ bool Graph::isConnected(int u, int v) {
 }
 
 void Graph::addEdge(int u, int v) {     ///Graph structure will build via this function.
-    A[u - 1][v - 1] = 1;
-    A[v - 1][u - 1] = 1;
+    A[u ][v] = 1;
+    A[v][u] = 1;
 }
 
 
@@ -143,6 +144,7 @@ char **generateChild(State &parent, int u, int v, int *uValues, int *vValues) {
             }
         }
     }
+    return NULL;
 }
 
 void matrixCopy(char **parentArray, char **chidArray, int u, int v) {
@@ -153,108 +155,148 @@ void matrixCopy(char **parentArray, char **chidArray, int u, int v) {
     }
 }
 
-class properties{
+class Properties{
     char **stateArray;
     int *xValues;
     int *yValues;
     int u;
     int v;
 public:
-    properties(char **stateArray, int *xValues, int *yValues, int u, int v) : stateArray(stateArray), xValues(xValues),
+    Properties(int u, int v){
+        this->u = u;
+        this->v = v;
+        this->stateArray = new char*[u];
+        for (int i = 0; i < u ; ++i) {
+            this->stateArray[i] = new char[v];
+        }
+        this->xValues = new int[u];
+        this->yValues = new int[v];
+    };
+    Properties(char **stateArray, int *xValues, int *yValues, int u, int v) : stateArray(stateArray), xValues(xValues),
                                                                               yValues(yValues), u(u), v(v) {}
 
-    char **getStateArray() const {
-        return stateArray;
-    }
+    char **getStateArray();
 
-    void setStateArray(char **stateArray) {
-        properties::stateArray = stateArray;
-    }
+    void setStateArray(char **stateArray);
 
-    int *getXValues() const {
-        return xValues;
-    }
+    int *getXValues();
 
-    void setXValues(int *xValues) {
-        properties::xValues = xValues;
-    }
+    void setXValues(int *xValues);
 
-    int *getYValues() const {
-        return yValues;
-    }
+    int *getYValues();
 
-    void setYValues(int *yValues) {
-        properties::yValues = yValues;
-    }
+    void setYValues(int *yValues);
 
-    int getU() const {
-        return u;
-    }
+    int getU();
 
-    void setU(int u) {
-        properties::u = u;
-    }
+    void setU(int u);
 
-    int getV() const {
-        return v;
-    }
+    int getV();
 
-    void setV(int v) {
-        properties::v = v;
-    }
+    void setV(int v);
 };
-properties& readFromFile(const string file_name);
-void printFile(properties prop);
 
-int main() {
-    properties *prop;
-    *prop = readFromFile("input_0.txt");
-
-    printFile(*prop);
-
+char **Properties::getStateArray() {
+    return stateArray;
 }
 
-properties& readFromFile(const string file_name) {
+void Properties::setStateArray(char **stateArray) {
+    Properties::stateArray = stateArray;
+}
+
+int *Properties::getXValues(){
+    return xValues;
+}
+
+void Properties::setXValues(int *xValues) {
+    Properties::xValues = xValues;
+}
+
+int *Properties::getYValues() {
+    return yValues;
+}
+
+void Properties::setYValues(int *yValues) {
+    Properties::yValues = yValues;
+}
+
+int Properties::getU() {
+    return u;
+}
+
+void Properties::setU(int u) {
+    Properties::u = u;
+}
+
+int Properties::getV() {
+    return v;
+}
+
+void Properties::setV(int v) {
+    Properties::v = v;
+}
+
+Properties readFromFile(const string file_name);
+void printFile(Properties prop);
+bool isEqualMatrix(char **A, char **B, int u, int v);
+int findInStates(vector<Properties>stateArray, char **A);
+bool controlGraphState(Properties prop);
+void generateAllStates(vector<Properties>&stateArray, Properties parent, Graph &graph);
+
+int main() {
+    Properties prop = readFromFile("input_0.txt");
+    vector<Properties> stateArray;
+    int u = prop.getU();
+    int v = prop.getV();
+    stateArray.push_back(prop);
+    Graph *graph = new Graph(u*u*v*v);
+    generateAllStates(stateArray,prop,*graph);
+    for (int i = 0; i < stateArray.size(); ++i) {
+        printFile(stateArray.at(i));
+    }
+}
+
+Properties readFromFile(const string file_name) {
     char **stateArray;
     int *xValues;
     int *yValues;
     ifstream file(file_name);
-    int u, v = 0;
+    int u = 0;
+    int v = 0;
     string line;
     int count = 0;
 
     while (getline(file, line)) {
         istringstream isStream(line);
         if (count == 0) {
-            isStream >> u;
             isStream >> v;
-            xValues = new int[u];
+            isStream >> u;
             yValues = new int[v];
+            xValues = new int[u];
             stateArray = new char*[u];
             for (int i = 0; i < u ; ++i) {
                 stateArray[i] = new char[v];
             }
         }else if (count == 1) {
-            for (int i = 0; i < u; ++i) {
-                isStream >> xValues[i];
+            for (int i = 0; i < v; ++i) {
+                isStream >> yValues[i];
             }
         } else {
             string temp;
-            isStream >> yValues[count - 2];
-            int tempCount = 0;
-            getline(file,temp,'\t');
+            getline(isStream,temp,'\t');
+            xValues[count-2] = stoi(temp);
             for (int i = 0; i < v; ++i) {
-                getline(file,temp,'\t');
+                getline(isStream,temp,'\t');
                 stateArray[count-2][i] = temp.at(0);
             }
         }
         count++;
     }
-    properties *prop = new properties(stateArray,xValues,yValues,u,v);
+    Properties *prop = new Properties(stateArray,xValues,yValues,u,v);
     return *prop;
 }
 
-void printFile(properties prop) {
+void printFile(Properties prop) {
 
     for (int i = 0; i < prop.getU(); ++i) {
         for (int j = 0; j < prop.getV(); ++j) {
@@ -264,12 +306,100 @@ void printFile(properties prop) {
     }
     cout << endl;
     for (int k = 0; k < prop.getU(); ++k) {
-        cout << prop.getXValues();
+        cout << prop.getXValues()[k];
     }
     cout << endl;
 
     for (int l = 0; l < prop.getV(); ++l) {
-        cout << prop.getYValues();
+        cout << prop.getYValues()[l];
+    }
+    cout << endl;
+    cout << endl;
+}
+
+bool isEqualMatrix(char **A, char **B, int u, int v){
+    bool equal = true;
+    for (int i = 0; i < u; ++i) {
+        for (int j = 0; j < v; ++j) {
+            if(A[i][j] != B[i][j]){
+                equal = false;
+                return equal;
+            }
+        }
+    }
+    return equal;
+}
+
+void generateAllStates(vector<Properties>&stateArray, Properties parent, Graph &graph){
+    int u = parent.getU();
+    int v = parent.getV();
+    char **tempArray = new char*[u];
+    for (int k = 0; k < u; ++k) {
+        tempArray[k] = new char[v];
     }
 
+    for (int i = 0; i <u ; ++i) {
+        for (int j = 0; j < v ; ++j) {
+            matrixCopy(parent.getStateArray(),tempArray,u,v);
+            if(tempArray[i][j] == '.'){
+                tempArray[i][j] = 'm';
+                if(findInStates(stateArray,tempArray) == -1){
+                    Properties tempProp(u,v);
+                    tempProp.setStateArray(tempArray);
+                    tempProp.setXValues(parent.getXValues());
+                    tempProp.setYValues(parent.getYValues());
+                    stateArray.push_back(tempProp);
+                    graph.addEdge(findInStates(stateArray, parent.getStateArray()), findInStates(stateArray, tempArray));
+                    if(controlGraphState(tempProp)){
+                        cout<<stateArray.size()<<endl;
+                        generateAllStates(stateArray,tempProp,graph);
+                        cout<<stateArray.size()<<endl;
+                    }
+                }else{
+                    graph.addEdge(findInStates(stateArray, parent.getStateArray()), findInStates(stateArray, tempArray));
+                }
+            }
+        }
+    }
 }
+
+int findInStates(vector<Properties>stateArray, char **A){
+    for (int i = 0; i < stateArray.size(); ++i) {
+        if(isEqualMatrix(stateArray[i].getStateArray(),A,stateArray[i].getU(),stateArray[i].getV())){
+            return i;
+        }
+    }
+    return -1;
+}
+
+bool controlGraphState(Properties prop){
+    int u = prop.getU();
+    int v = prop.getV();
+    int *totalMinerX = new int[u];
+    for (int k = 0; k < u ; ++k) {
+        totalMinerX[k] = 0;
+    }
+    for (int l = 0; l < v; ++l) {
+        totalMinerX[l] = 0;
+    }
+    int *totalMinerY = new int[v];
+    for (int i = 0; i < u; ++i) {
+        for (int j = 0; j < v; ++j) {
+            if(prop.getStateArray()[i][j] == 'm'){
+                totalMinerX[i]++;
+                totalMinerY[i]++;
+            }
+        }
+    }
+
+    for (int m = 0; m < u ; ++m) {
+        if(totalMinerX[m] > prop.getXValues()[m])
+            return false;
+    }
+    for (int n = 0; n < v ; ++n) {
+        if(totalMinerY[n] > prop.getYValues()[n])
+            return false;
+    }
+    return true;
+}
+
